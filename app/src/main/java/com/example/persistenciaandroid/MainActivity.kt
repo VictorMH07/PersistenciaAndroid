@@ -26,8 +26,19 @@ import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.example.persistenciaandroid.data.AppDatabase
+import com.example.persistenciaandroid.data.TareaRepository
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.example.persistenciaandroid.data.Tarea
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var tareaRepository: TareaRepository
 
     private var nombreGuardado = ""
     private var correoGuardado = ""
@@ -42,6 +53,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val database = AppDatabase.getDatabase(applicationContext)
+        tareaRepository = TareaRepository(database.tareaDao())
 
         // Recuperación explícita del estado guardado
         if (savedInstanceState != null) {
@@ -65,7 +79,28 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            val tareas by tareaRepository.todasLasTareas.collectAsState(initial = emptyList())
+
             PersistenciaScreen(
+                tareas = tareas,
+                onAgregarTarea = { tarea ->
+                    lifecycleScope.launch {
+                        tareaRepository.insertar(tarea)
+                    }
+                },
+
+                onActualizarTarea = { tarea ->
+                    lifecycleScope.launch {
+                        tareaRepository.actualizar(tarea)
+                    }
+                },
+
+                onEliminarTarea = { tarea ->
+                    lifecycleScope.launch {
+                        tareaRepository.eliminar(tarea)
+                    }
+                },
+
                 nombreInicial = nombreGuardado,
                 correoInicial = correoGuardado,
                 descripcionInicial = descripcionGuardada,
@@ -131,6 +166,10 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun PersistenciaScreen(
+    tareas: List<Tarea>,
+    onAgregarTarea: suspend (Tarea) -> Unit,
+    onActualizarTarea: suspend (Tarea) -> Unit,
+    onEliminarTarea: suspend (Tarea) -> Unit,
     nombreInicial: String,
     correoInicial: String,
     descripcionInicial: String,
@@ -145,6 +184,17 @@ fun PersistenciaScreen(
     onTemporizadorChange: (Boolean) -> Unit,
     onCampoFocoChange: (String) -> Unit
 ) {
+
+    val coroutineScope = rememberCoroutineScope()
+
+    var tituloTarea by remember {
+        mutableStateOf("")
+    }
+
+    var descripcionTarea by remember {
+        mutableStateOf("")
+    }
+
     var nombre = remember {
         mutableStateOf(nombreInicial)
     }
@@ -206,6 +256,121 @@ fun PersistenciaScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.Top
     ) {
+
+        Text(
+            text = "Mis tareas",
+            fontSize = 24.sp
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Nueva tarea",
+            fontSize = 22.sp
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = tituloTarea,
+            onValueChange = {
+                tituloTarea = it
+            },
+            label = {
+                Text("Título")
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = descripcionTarea,
+            onValueChange = {
+                descripcionTarea = it
+            },
+            label = {
+                Text("Descripción")
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = {
+                if (tituloTarea.isNotBlank()) {
+                    coroutineScope.launch {
+                        onAgregarTarea(
+                            Tarea(
+                                titulo = tituloTarea,
+                                descripcion = descripcionTarea
+                            )
+                        )
+
+                        tituloTarea = ""
+                        descripcionTarea = ""
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Guardar tarea")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        if (tareas.isEmpty()) {
+            Text("No hay tareas guardadas.")
+        } else {
+            tareas.forEach { tarea ->
+                Text(
+                    text = tarea.titulo,
+                    fontSize = 18.sp
+                )
+
+                Text(
+                    text = tarea.descripcion,
+                    fontSize = 14.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            onActualizarTarea(
+                                tarea.copy(
+                                    estadoCompletado = !tarea.estadoCompletado
+                                )
+                            )
+                        }
+                    }
+                ) {
+                    Text(
+                        if (tarea.estadoCompletado) {
+                            "Marcar como pendiente"
+                        } else {
+                            "Marcar como completada"
+                        }
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            onEliminarTarea(tarea)
+                        }
+                    }
+                ) {
+                    Text("Eliminar")
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
             text = "Persistencia Android",
