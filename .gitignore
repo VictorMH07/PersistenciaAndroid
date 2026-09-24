@@ -1,0 +1,18 @@
+# Gradle
+.gradle/
+build/
+
+# Local configuration file
+local.properties
+
+# Android Studio
+.idea/
+*.iml
+
+# Android build files
+captures/
+.externalNativeBuild/
+.cxx/
+
+# macOS
+.DS_Store
