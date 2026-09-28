@@ -379,11 +379,22 @@ fun PersistenciaScreen(
                             fontSize = 14.sp
                         )
 
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = if (tarea.sincronizada) {
+                                "Sincronización: Sincronizada"
+                            } else {
+                                "Sincronización: Pendiente"
+                            },
+                            fontSize = 14.sp
+                        )
+
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
 
                             Button(
@@ -397,7 +408,7 @@ fun PersistenciaScreen(
                                         )
                                     }
                                 },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     if (tarea.estadoCompletado) {
@@ -411,10 +422,32 @@ fun PersistenciaScreen(
                             Button(
                                 onClick = {
                                     coroutineScope.launch {
+                                        onActualizarTarea(
+                                            tarea.copy(
+                                                sincronizada = true
+                                            )
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !tarea.sincronizada
+                            ) {
+                                Text(
+                                    if (tarea.sincronizada) {
+                                        "Sincronizada"
+                                    } else {
+                                        "Sincronizar"
+                                    }
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
                                         onEliminarTarea(tarea)
                                     }
                                 },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Eliminar")
                             }

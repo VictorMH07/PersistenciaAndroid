@@ -10,5 +10,6 @@ data class Tarea(
     val titulo: String,
     val descripcion: String,
     val estadoCompletado: Boolean = false,
-    val fechaCreacion: Long = System.currentTimeMillis()
+    val fechaCreacion: Long = System.currentTimeMillis(),
+    val sincronizada: Boolean = false
 )
