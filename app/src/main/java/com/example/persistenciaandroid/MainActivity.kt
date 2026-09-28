@@ -35,6 +35,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 
 class MainActivity : ComponentActivity() {
 
@@ -323,50 +329,98 @@ fun PersistenciaScreen(
         if (tareas.isEmpty()) {
             Text("No hay tareas guardadas.")
         } else {
+
             tareas.forEach { tarea ->
-                Text(
-                    text = tarea.titulo,
-                    fontSize = 18.sp
-                )
 
-                Text(
-                    text = tarea.descripcion,
-                    fontSize = 14.sp
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            onActualizarTarea(
-                                tarea.copy(
-                                    estadoCompletado = !tarea.estadoCompletado
-                                )
-                            )
-                        }
-                    }
-                ) {
-                    Text(
-                        if (tarea.estadoCompletado) {
-                            "Marcar como pendiente"
-                        } else {
-                            "Marcar como completada"
-                        }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = 4.dp
                     )
-                }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
 
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            onEliminarTarea(tarea)
+                        Text(
+                            text = tarea.titulo,
+                            fontSize = 20.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = tarea.descripcion,
+                            fontSize = 14.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Creada: ${
+                                SimpleDateFormat(
+                                    "dd/MM/yyyy HH:mm",
+                                    Locale.getDefault()
+                                ).format(Date(tarea.fechaCreacion))
+                            }",
+                            fontSize = 12.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = if (tarea.estadoCompletado) {
+                                "Estado: Completada"
+                            } else {
+                                "Estado: Pendiente"
+                            },
+                            fontSize = 14.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        onActualizarTarea(
+                                            tarea.copy(
+                                                estadoCompletado =
+                                                    !tarea.estadoCompletado
+                                            )
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    if (tarea.estadoCompletado) {
+                                        "Pendiente"
+                                    } else {
+                                        "Completar"
+                                    }
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        onEliminarTarea(tarea)
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Eliminar")
+                            }
                         }
                     }
-                ) {
-                    Text("Eliminar")
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
             }
         }
 
