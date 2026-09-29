@@ -38,9 +38,13 @@ import androidx.lifecycle.lifecycleScope
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.platform.LocalContext
+import com.example.persistenciaandroid.security.NotaSeguraManager
+import com.example.persistenciaandroid.security.NotaExternaManager
+import kotlin.time.Duration.Companion.seconds
+import androidx.compose.runtime.mutableIntStateOf
 
 class MainActivity : ComponentActivity() {
 
@@ -193,6 +197,28 @@ fun PersistenciaScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
+    val context = LocalContext.current
+
+    val notaSeguraManager = remember {
+        NotaSeguraManager(context)
+    }
+
+    val notaExternaManager = remember {
+        NotaExternaManager(context)
+    }
+
+    var notaConfidencial by remember {
+        mutableStateOf("")
+    }
+
+    var notaRecuperada by remember {
+        mutableStateOf("")
+    }
+
+    var rutaNotaExterna by remember {
+        mutableStateOf("")
+    }
+
     var tituloTarea by remember {
         mutableStateOf("")
     }
@@ -201,23 +227,23 @@ fun PersistenciaScreen(
         mutableStateOf("")
     }
 
-    var nombre = remember {
+    val nombre = remember {
         mutableStateOf(nombreInicial)
     }
 
-    var correo = remember {
+    val correo = remember {
         mutableStateOf(correoInicial)
     }
 
-    var descripcion = remember {
+    val descripcion = remember {
         mutableStateOf(descripcionInicial)
     }
 
-    var tiempo = remember {
-        mutableStateOf(tiempoInicial)
+    val tiempo = remember {
+        mutableIntStateOf(tiempoInicial)
     }
 
-    var temporizadorActivo = remember {
+    val temporizadorActivo = remember {
         mutableStateOf(temporizadorInicial)
     }
 
@@ -242,13 +268,13 @@ fun PersistenciaScreen(
     }
 
     LaunchedEffect(temporizadorActivo.value) {
-        while (temporizadorActivo.value && tiempo.value > 0) {
-            delay(1000)
+        while (temporizadorActivo.value && tiempo.intValue > 0) {
+            delay(1.seconds)
 
-            tiempo.value -= 1
-            onTiempoChange(tiempo.value)
+            tiempo.intValue -= 1
+            onTiempoChange(tiempo.intValue)
 
-            if (tiempo.value == 0) {
+            if (tiempo.intValue == 0) {
                 temporizadorActivo.value = false
                 onTemporizadorChange(false)
             }
@@ -536,11 +562,11 @@ fun PersistenciaScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        val minutos = tiempo.value / 60
-        val segundos = tiempo.value % 60
+        val minutos = tiempo.intValue / 60
+        val segundos = tiempo.intValue % 60
 
         Text(
-            text = String.format("%02d:%02d", minutos, segundos),
+            text = String.format(Locale.getDefault(),"%02d:%02d", minutos, segundos),
             fontSize = 36.sp
         )
 
@@ -566,6 +592,92 @@ fun PersistenciaScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Pausar temporizador")
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "Notas confidenciales",
+            fontSize = 24.sp
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = notaConfidencial,
+            onValueChange = {
+                notaConfidencial = it
+            },
+            label = {
+                Text("Nota sensible")
+            },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 4
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = {
+                notaSeguraManager.guardarNota(notaConfidencial)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Guardar nota segura")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                notaExternaManager.guardarNota(notaConfidencial)
+                rutaNotaExterna = notaExternaManager.obtenerRutaArchivo()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Guardar copia sin cifrar")
+        }
+
+        if (rutaNotaExterna.isNotEmpty()) {
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Archivo externo creado en:"
+            )
+
+            Text(
+                text = rutaNotaExterna,
+                fontSize = 12.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                notaRecuperada = notaSeguraManager.obtenerNota()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Leer nota segura")
+        }
+
+        if (notaRecuperada.isNotEmpty()) {
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Nota recuperada:",
+                fontSize = 18.sp
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = notaRecuperada,
+                fontSize = 16.sp
+            )
         }
     }
 }

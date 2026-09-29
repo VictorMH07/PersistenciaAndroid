@@ -37,6 +37,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
