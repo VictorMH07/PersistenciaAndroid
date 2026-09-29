@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 interface TareaDao {
 
     @Insert
-    suspend fun insertar(tarea: Tarea)
+    suspend fun insertar(tarea: Tarea): Long
 
     @Query("SELECT * FROM tareas ORDER BY id DESC")
     fun obtenerTodas(): Flow<List<Tarea>>
