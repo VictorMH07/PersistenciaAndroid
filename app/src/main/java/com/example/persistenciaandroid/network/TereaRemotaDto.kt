@@ -1,4 +1,4 @@
-package com.example.persistenciaandroid.data
+package com.example.persistenciaandroid.network
 
 data class TareaRemotaDto(
     val id: Int,
