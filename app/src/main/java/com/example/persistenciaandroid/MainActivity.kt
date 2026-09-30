@@ -28,6 +28,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.example.persistenciaandroid.data.AppDatabase
 import com.example.persistenciaandroid.data.TareaRepository
+import com.example.persistenciaandroid.data.TareaRemotaRepository
+import com.example.persistenciaandroid.data.TareaRemota
+import com.example.persistenciaandroid.network.RetrofitClient
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.example.persistenciaandroid.data.Tarea
@@ -49,6 +52,7 @@ import androidx.compose.runtime.mutableIntStateOf
 class MainActivity : ComponentActivity() {
 
     private lateinit var tareaRepository: TareaRepository
+    private lateinit var tareaRemotaRepository: TareaRemotaRepository
 
     private var nombreGuardado = ""
     private var correoGuardado = ""
@@ -66,6 +70,11 @@ class MainActivity : ComponentActivity() {
 
         val database = AppDatabase.getDatabase(applicationContext)
         tareaRepository = TareaRepository(database.tareaDao())
+
+        tareaRemotaRepository = TareaRemotaRepository(
+            database.tareaRemotaDao(),
+            RetrofitClient.api
+        )
 
         // Recuperación explícita del estado guardado
         if (savedInstanceState != null) {
@@ -91,8 +100,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             val tareas by tareaRepository.todasLasTareas.collectAsState(initial = emptyList())
 
+            val tareasRemotas by tareaRemotaRepository.tareasCacheadas
+                .collectAsState(initial = emptyList())
+
             PersistenciaScreen(
                 tareas = tareas,
+                tareasRemotas = tareasRemotas,
+                tareaRemotaRepository = tareaRemotaRepository,
                 onAgregarTarea = { tarea ->
                     lifecycleScope.launch {
                         tareaRepository.insertar(tarea)
@@ -177,6 +191,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun PersistenciaScreen(
     tareas: List<Tarea>,
+    tareasRemotas: List<TareaRemota>,
+    tareaRemotaRepository: TareaRemotaRepository,
     onAgregarTarea: suspend (Tarea) -> Unit,
     onActualizarTarea: suspend (Tarea) -> Unit,
     onEliminarTarea: suspend (Tarea) -> Unit,
@@ -198,6 +214,14 @@ fun PersistenciaScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        try {
+            tareaRemotaRepository.sincronizar()
+        } catch (_: Exception) {
+            // Si no hay coneción, se conserva la caché local.
+        }
+    }
 
     val notaSeguraManager = remember {
         NotaSeguraManager(context)
@@ -295,6 +319,50 @@ fun PersistenciaScreen(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Tareas desde la API",
+            fontSize = 22.sp
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (tareasRemotas.isEmpty()) {
+            Text("No hay tareas remotas en caché.")
+        } else {
+            tareasRemotas.forEach { tarea ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = 4.dp
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = tarea.titulo,
+                            fontSize = 18.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = if (tarea.completado) {
+                                "Estado: Completada"
+                            } else {
+                                "Estado: Pendiente"
+                            },
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
             text = "Nueva tarea",
